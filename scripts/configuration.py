@@ -46,7 +46,7 @@ class Configuration():
                 file_content = content_file.read()
             config = json.loads(file_content)
         except Exception as error:
-            print "Error while parsing %s config file : %s"%(self.config_file,error)
+            print( "Error while parsing %s config file : %s"%(self.config_file,error))
             self.is_valid = False
             return False
         if "gmail_user" in config.keys():  self.user_name = config['gmail_user']

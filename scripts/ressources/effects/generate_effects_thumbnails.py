@@ -97,7 +97,7 @@ def crop(effects_snaps):
     
     def validate_crop_cb(event):
         global y_offset, x_offset
-        print "Cropping images at ",(x_offset,y_offset)
+        print ("Cropping images at ",(x_offset,y_offset))
         crop_images(effects_snaps,x_offset,y_offset,'new_thumbs')
         root.destroy()
     root.bind("<Return>",validate_crop_cb)
@@ -116,9 +116,9 @@ def crop_images(effects_snaps, offset_x, offset_y, path):
             except:
                 pass
             cropped_im.save(os.path.join(path,icon_fn))
-        except Exception, err:
-            print "Error generating crop for effect",effect
-            print err
+        except Exception as err:
+            print("Error generating crop for effect",effect)
+            print(err)
 
 if __name__ == '__main__':
     effects_snaps = snap_effects()

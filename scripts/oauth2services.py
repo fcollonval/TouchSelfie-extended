@@ -385,9 +385,9 @@ def test():
     print "\nTesting album list retrieval..."
     albums = gservice.get_user_albums()
     for i, album in enumerate(albums):
-        print "\t title: %s, id: %s"%(album['title'],album['id'])
+        print("\t title: %s, id: %s"%(album['title'],album['id']))
         if i >= 10:
-            print "skipping the remaining albums..."
+            print("skipping the remaining albums...")
             break
     print "\nTesting album creation and image upload"
     album_id = gservice.create_album(album_name="Test", add_placeholder_picture = True)

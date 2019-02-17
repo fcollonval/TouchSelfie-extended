@@ -515,15 +515,15 @@ class TouchKeyboard:
                     except:
                         pass
                 self.canvas.update()
-            except Exception, e:
+            except Exception  as e:
                 log.exception("Error while applying stylesheet")
             
 if __name__ == '__main__':
     r = Tk()
     myres = StringVar()
     def onEnter():
-        print 'Enter Pressed'
-        print "result %s"%myres.get()
+        print ('Enter Pressed')
+        print ("result %s"%myres.get())
 
     keyboard = TouchKeyboard(r,myres, onEnter = onEnter)
     r.mainloop()
