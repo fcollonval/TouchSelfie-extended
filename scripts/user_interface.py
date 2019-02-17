@@ -35,7 +35,7 @@ try:
     import hardware_buttons as HWB
 except ImportError:
     log.error("Error importing hardware_buttons, using fakehardware instead")
-    print traceback.print_exc()
+    print(traceback.print_exc())
     import fakehardware as HWB
 
 try:

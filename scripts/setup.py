@@ -776,7 +776,7 @@ Click the Start button below:
             print ("\nSending a test message to %s"%username)
             self.google_service.send_message(username,self.config.emailSubject,self.config.emailMsg,attachment_file="test_image.png")
         if test_upload:
-            print "\nTesting picture upload in %s's album with id %s:"%(username,self.config.albumID)
+            print ("\nTesting picture upload in %s's album with id %s:"%(username,self.config.albumID))
 
             self.google_service.upload_picture("test_image.png", album_id = self.config.albumID)
 
@@ -948,7 +948,7 @@ def console_assistant():
             keep_album = to_boolean(raw_input("Photo Album is configured (%s), do you want to keep it? [Y/n] => "%config.album_name))
             change_album_id = not keep_album
         else:
-            print "\nNo photo album selected, images will be uploaded to\nGoogle Photo Library (No Album)"
+            print ("\nNo photo album selected, images will be uploaded to\nGoogle Photo Library (No Album)")
             change_album_id = to_boolean(raw_input("\nDo you want to select another album for upload? [N/y] => "))
 
         if change_album_id:
@@ -997,7 +997,7 @@ def console_assistant():
                     config.albumID = album_id
                 config.album_name = album_title
                 config.write()
-                print "\nAlbum '%s' with id '%s' successfully selected!\n"%(album_title, album_id)
+                print ("\nAlbum '%s' with id '%s' successfully selected!\n"%(album_title, album_id))
             except:
                 import traceback
                 traceback.print_exc()
