@@ -4,23 +4,24 @@
 <ScreenOrchestrator>:
     size: (800, 480)
     SelfieScreen:
+        id: selfie
     PrintScreen:
         id: print
-        source: root.montage_filename
+        snaps: selfie.snaps
 
 <SelfieScreen>:
     name: "selfie"
     text: main_label
-    preview: image_preview
+    camera: image_preview
 
-    Image:
+    Camera:
         id: image_preview
+        resolution: (1600, 960)
+        play: True 
         size: self.parent.width, self.parent.height
 
     Label:
         id: main_label
-        # center_x: self.parent.width / 2
-        # center_y: self.parent.height / 2
         font_size: 70
         text: "Press to start"
 
@@ -30,9 +31,9 @@
 
     BoxLayout:
         orientation: "vertical"
+        size_hint: (1., 1.)
 
         BoxLayout:
-            center_x: self.parent.width / 2
             height: 60
             size_hint_y: None
         
@@ -58,6 +59,7 @@
                 size_hint: (0.1, 1.)
                 on_release: app.root.send_email(input_email.text)
 
-        Image:
-            id: image_preview
-            source: root.source
+        BoxLayout:
+            id: preview
+            size_hint: (1., 0.875)
+

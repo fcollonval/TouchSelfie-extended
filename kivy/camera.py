@@ -5,13 +5,17 @@ from random import randint
 
 from PIL import Image
 
+from constants import RESOLUTION
+
 
 class CameraBackend(Enum):
     DUMMY = 0
     GPHOTO2 = 1
+    PICAMERA = 2
 
 
 backend = CameraBackend.DUMMY
+
 
 try:
     import gphoto2 as gp
@@ -19,7 +23,11 @@ try:
         raise ImportError()
     backend = CameraBackend.GPHOTO2
 except ImportError:
-    backend = CameraBackend.DUMMY
+    try:
+        from picamera import PiCamera
+        backend = CameraBackend.PICAMERA
+    except ImportError:
+        backend = CameraBackend.DUMMY
 
 
 class AbstractCamera(ABC):
@@ -38,7 +46,7 @@ class AbstractCamera(ABC):
 
 class DummyCamera(AbstractCamera):
     
-    resolution = (2552, 2000)
+    resolution = RESOLUTION
 
     def preview(self):
         fp = io.BytesIO()
@@ -94,9 +102,28 @@ class GPhoto2Camera(AbstractCamera):
             gp.GP_FILE_TYPE_NORMAL)
         camera_file.file_save(filename)
 
+
+class ThePiCamera(AbstractCamera):
+
+    resolution = RESOLUTION
+
+    def __init__(self):
+        self.camera = PiCamera(resolution=self.resolution)
+
+    def preview(self):
+        fp = io.BytesIO()
+        self.camera.capture(fp, 'jpeg', resize=(640, 424))
+        fp.seek(0)
+        return fp
+
+    def capture_image(self, filename):
+        self.camera.capture(filename, 'jpeg')
+
+
 chooser = {
     CameraBackend.DUMMY: DummyCamera,
-    CameraBackend.GPHOTO2: GPhoto2Camera
+    CameraBackend.GPHOTO2: GPhoto2Camera,
+    CameraBackend.PICAMERA: ThePiCamera
 }
-
+print(backend)
 camera = chooser[backend]()

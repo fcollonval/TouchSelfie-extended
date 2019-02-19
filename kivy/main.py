@@ -1,56 +1,56 @@
+from copy import copy
 from datetime import datetime
 import os.path as osp
 from threading import Thread
 from time import sleep
 
+import cups
+import getpass
+
 from kivy.app import App
 from kivy.config import Config
 from kivy.core.image import Image as CoreImage
+
+from kivy.graphics.texture import Texture
+from kivy.graphics.vertex_instructions import Rectangle
+
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.properties import ObjectProperty, BooleanProperty, \
-    NumericProperty, StringProperty
+    NumericProperty, StringProperty, ListProperty
 from kivy.clock import Clock
 from kivy.garden import iconfonts
 
 from PIL import Image
 
-from camera import camera
+from constants import RESOLUTION
+# from camera import camera
 
 TMP_FOLDER = 'snapshots'
 STORAGE_FOLDER = 'pictures'
-RESOLUTION = (2552, 2000)
 COUNTDOWN = 2
+PREVIEW_REFRESH = 1.
+NPHOTOS = 3
+PRINTER = 'ZJ-58'
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
 
 
 class SelfieScreen(Screen):
+    snaps = ListProperty(None)
     text = ObjectProperty(None)
-    preview = ObjectProperty(None)
+    camera = ObjectProperty(None)
     selfie_in_progress = BooleanProperty(False)
-    update_preview = BooleanProperty(True)
     countdown = NumericProperty(0)
     counter = NumericProperty(0)
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.camera = camera
+        self.snaps = [
+            Texture.create(size=RESOLUTION) for i in range(NPHOTOS)
+        ]
+        # self.camera = camera
         self.clock_event = None
-        Clock.schedule_interval(self.camera_preview, 1.)
-
-    def on_enter(self, *args):
-        self.update_preview = True
-        super().on_enter(*args)
-    
-    def on_leave(self, *args):
-        self.update_preview = False
-        super().on_leave(*args)
-
-    def camera_preview(self, dt):
-        if self.update_preview:
-            im = CoreImage(self.camera.preview(), ext='jpg')
-            self.preview.texture = im.texture
 
     def decrement(self, dt):
         self.countdown -= 1
@@ -65,11 +65,13 @@ class SelfieScreen(Screen):
             self.clock_event.cancel()
 
         self.text.text = "Smile"
-        filename = osp.join(TMP_FOLDER, "snap{}.jpg".format(self.counter))
-        self.camera.capture_image(filename)
+        filename = osp.join(TMP_FOLDER, "snap{}.png".format(self.counter))
+        # self.camera.capture_image(filename)
+        tw, th = self.camera.texture_size
+        self.snaps[self.counter] = copy(self.camera.texture.get_region(0, 0, tw, th))
         self.counter += 1
 
-        if self.counter == 4:
+        if self.counter == NPHOTOS:
             self.process_picture()
         else:
             self.countdown = COUNTDOWN
@@ -77,8 +79,11 @@ class SelfieScreen(Screen):
             self.clock_event = Clock.schedule_interval(self.decrement, 1)
     
     def process_picture(self):
-        self.update_preview = False
+        self.parent.current = "print"
+        self.selfie_in_progress = False
+        self.text.text = "Press to start"
 
+        return
         # collage of four shots
         # compute collage size
         w = RESOLUTION[0]
@@ -130,15 +135,35 @@ class SelfieScreen(Screen):
 
 
 class PrintScreen(Screen):
-    source = StringProperty("builtin-effects.png")
+    snaps = ListProperty(None) 
+
+    def on_pre_enter(self, *args):
+        previews = self.ids.preview
+        previews.canvas.clear()
+        with previews.canvas:
+            for i in range(NPHOTOS):
+                Rectangle(
+                    size=(self.width/NPHOTOS, self.height - 60), 
+                    pos=(i*self.width/NPHOTOS, 0), 
+                    texture=self.snaps[i]
+                )
 
 
 class ScreenOrchestrator(ScreenManager):
-    montage_filename = StringProperty("builtin-effects.png")
-    
+
     def send_email(self, email):
         # TODO
-        print("Send email and print " + email)
+        print("Store email and print " + email)
+        try:
+            conn = cups.Connection()
+            printers = conn.getPrinters()
+            if PRINTER not in printers:
+                raise ValueError("Printer {} not found.".format(PRINTER))
+            cups.setUser(getpass.getuser())
+            # Printer, filename, title, options
+            conn.printFile(PRINTER, "dummy.png", 'dummy', {'fit-to-page': 'True'})
+        except Exception as err:
+            print("Print failed: {}".format(repr(err)))
         self.reset()
 
     def reset(self):
