@@ -32,6 +32,7 @@
     BoxLayout:
         orientation: "vertical"
         size_hint: (1., 1.)
+        id: layout
 
         BoxLayout:
             height: 60
@@ -40,7 +41,7 @@
             Button:
                 markup: True # Always turn markup on
                 text: "%s"%(icon('fa-undo'))
-                on_release: app.root.reset()            
+                on_release: layout.parent.reset()            
                 font_size: 40
                 size_hint: (0.1, 1.)
 
@@ -57,7 +58,7 @@
                 text: "%s"%(icon('fa-paper-plane-o'))
                 font_size: 40
                 size_hint: (0.1, 1.)
-                on_release: app.root.send_email(input_email.text)
+                on_release: layout.parent.send_email(input_email.text)
 
         BoxLayout:
             id: preview

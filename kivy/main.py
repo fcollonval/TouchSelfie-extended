@@ -9,7 +9,7 @@ from kivy.config import Config
 from kivy.core.image import Image as CoreImage
 
 from kivy.graphics.texture import Texture
-from kivy.graphics.vertex_instructions import Rectangle
+from kivy.graphics import Fbo, Rectangle
 
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.properties import ObjectProperty, BooleanProperty, \
@@ -20,24 +20,26 @@ from kivy.garden import iconfonts
 from PIL import Image
 
 
+BACKGROUND = "photobooth_bg.png"
 COUNTDOWN = 2
 NPHOTOS = 3
-ORIENTATION = 'horizontal'
+# 5 * 15.2cm @200DPI
+PAPER_SIZE = (402, 1197)
 PRINTER = 'ZJ-58'
 # Pi Camera v2 Hardware 3280 × 2464 pixels
-RESOLUTION = (1600, 960)
+RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
 
 
 class SelfieScreen(Screen):
-    snaps = ListProperty(None)
-    text = ObjectProperty(None)
     camera = ObjectProperty(None)
-    selfie_in_progress = BooleanProperty(False)
     countdown = NumericProperty(0)
     counter = NumericProperty(0)
+    selfie_in_progress = BooleanProperty(False)
+    snaps = ListProperty(None)
+    text = ObjectProperty(None)
 
     RESOLUTION = RESOLUTION
     
@@ -81,52 +83,13 @@ class SelfieScreen(Screen):
             self.clock_event = Clock.schedule_interval(self.decrement, 1)
     
     def process_picture(self):
-        self.parent.current = "print"
-        self.selfie_in_progress = False
-        self.text.text = "Press to start"
-
-        return
-        # collage of four shots
-        # compute collage size
-        w = RESOLUTION[0]
-        h = RESOLUTION[1]
-        w_ = w * 2
-        h_ = h * 2
-        # Assemble collage
-        snapshot = Image.new('RGBA', (w_, h_))
-        composition = [
-            (  0,   0,  w, h),
-            (w,   0, w_, h),
-            (  0, h,  w, h_),
-            (w, h, w_, h_)
-        ]
-        for i, position in enumerate(composition):
-            snapshot.paste(
-                Image.open(osp.join(TMP_FOLDER, "snap{}.jpg".format(i))),
-                position
-            )
-        
-        #paste the collage enveloppe
-        front = Image.open('collage_four_square.png')
-        front = front.resize((w_,h_))
-        front = front.convert('RGBA')
-        snapshot = snapshot.convert('RGBA')
-        snapshot = Image.alpha_composite(snapshot, front)
-
-        # Save the final composition
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = osp.join(STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
-        snapshot = snapshot.convert('RGB')
-        snapshot.save(filename)
-        self.parent.montage_filename = filename
-
         # Switch screen
         self.parent.current = "print"
-        self.selfie_in_progress = False
-        self.text.text = "Press to start"
 
     def on_pre_enter(self, *args):
         if self.camera is not None:
+            self.text.text = "Press to start"
+            self.selfie_in_progress = False
             self.camera.play = True
 
     def on_pre_leave(self, *args):
@@ -145,14 +108,13 @@ class SelfieScreen(Screen):
 
 
 class PrintScreen(Screen):
-    snaps = ListProperty(None) 
+    snaps = ListProperty(None)
+    montage_file = StringProperty("")
 
     def on_pre_enter(self, *args):
         w = self.width/NPHOTOS
         h = self.height - 60.
         thumbnail_size = (int(w), int(w / RESOLUTION[0] * RESOLUTION[1]))
-        if ORIENTATION != 'horizontal':
-            thumbnail_size = (int(h / RESOLUTION[0] * RESOLUTION[1]), int(h))
 
         previews = self.ids.preview
         previews.canvas.clear()
@@ -160,12 +122,38 @@ class PrintScreen(Screen):
             for i in range(NPHOTOS):
                 Rectangle(
                     size=thumbnail_size,
-                    pos=(int(i*thumbnail_size[0]), int(0.5*(h - thumbnail_size[1]))) if ORIENTATION == 'horizontal' else (int((i+0.5)*w - 0.5*thumbnail_size[0]), 0), 
+                    pos=(int(i*thumbnail_size[0]), int(0.5*(h - thumbnail_size[1]))),
                     texture=self.snaps[i]
                 )
 
+        # Generate the composed image
+        background = CoreImage(BACKGROUND).texture
+        fbo = Fbo(size=PAPER_SIZE)
+        
+        w, h = fbo.size
+        length = int(0.8 * w)  # Picture will be square of 80% of paper width
+        length = min(length, int(h * 0.85/ NPHOTOS))
 
-class ScreenOrchestrator(ScreenManager):
+        with fbo:
+            Rectangle(size=fbo.size, pos=(0, 0), texture=background)
+            for i in range(NPHOTOS):
+                Rectangle(
+                    size=(length, length),
+                    pos=(
+                        int(0.5 * (w - length)), 
+                        int(h - (i + 1) * (0.45 * (w - length) + length))
+                    ),
+                    texture=self.snaps[i]
+                )
+        # Carry the actual draw
+        fbo.draw()
+
+        # Save the final composition
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
+        fbo.bind()
+        fbo.texture.save(self.montage_file, flipped=True)
+        fbo.release()
 
     def send_email(self, email):
         # TODO
@@ -183,7 +171,12 @@ class ScreenOrchestrator(ScreenManager):
         self.reset()
 
     def reset(self):
-        self.current = "selfie" 
+        self.parent.current = "selfie" 
+
+
+class ScreenOrchestrator(ScreenManager):
+    pass
+
 
 class SelfieApp(App):
     
