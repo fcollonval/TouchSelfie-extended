@@ -27,13 +27,13 @@ from PIL import Image
 from constants import RESOLUTION
 # from camera import camera
 
-TMP_FOLDER = 'snapshots'
-STORAGE_FOLDER = 'pictures'
 COUNTDOWN = 2
-PREVIEW_REFRESH = 1.
 NPHOTOS = 3
+ORIENTATION = 'horizontal'
 PRINTER = 'ZJ-58'
+# Pi Camera v2 Hardware 3280 × 2464 pixels
 RESOLUTION = (1600, 960)
+STORAGE_FOLDER = 'pictures'
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
 
@@ -147,13 +147,19 @@ class PrintScreen(Screen):
     snaps = ListProperty(None) 
 
     def on_pre_enter(self, *args):
+        w = self.width/NPHOTOS
+        h = self.height - 60.
+        thumbnail_size = (int(w), int(w / RESOLUTION[0] * RESOLUTION[1]))
+        if ORIENTATION != 'horizontal':
+            thumbnail_size = (int(h / RESOLUTION[0] * RESOLUTION[1]), int(h))
+
         previews = self.ids.preview
         previews.canvas.clear()
         with previews.canvas:
             for i in range(NPHOTOS):
                 Rectangle(
-                    size=(self.width/NPHOTOS, self.height - 60), 
-                    pos=(i*self.width/NPHOTOS, 0), 
+                    size=thumbnail_size,
+                    pos=(int(i*thumbnail_size[0]), int(0.5*(h - thumbnail_size[1]))) if ORIENTATION == 'horizontal' else (int((i+0.5)*w - 0.5*thumbnail_size[0]), 0), 
                     texture=self.snaps[i]
                 )
 
