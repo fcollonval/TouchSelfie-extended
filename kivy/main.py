@@ -1,9 +1,5 @@
-from copy import copy
 from datetime import datetime
-from io import BytesIO
 import os.path as osp
-from threading import Thread
-from time import sleep
 
 import cups
 import getpass
@@ -15,7 +11,6 @@ from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.graphics.vertex_instructions import Rectangle
 
-from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.properties import ObjectProperty, BooleanProperty, \
     NumericProperty, StringProperty, ListProperty
@@ -24,8 +19,6 @@ from kivy.garden import iconfonts
 
 from PIL import Image
 
-from constants import RESOLUTION
-# from camera import camera
 
 COUNTDOWN = 2
 NPHOTOS = 3
@@ -131,6 +124,14 @@ class SelfieScreen(Screen):
         self.parent.current = "print"
         self.selfie_in_progress = False
         self.text.text = "Press to start"
+
+    def on_pre_enter(self, *args):
+        if self.camera is not None:
+            self.camera.play = True
+
+    def on_pre_leave(self, *args):
+        if self.camera is not None:
+            self.camera.play = False
 
     def on_touch_down(self, touch):
         if self.selfie_in_progress:
