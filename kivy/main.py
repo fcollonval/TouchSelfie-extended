@@ -1,5 +1,6 @@
 from copy import copy
 from datetime import datetime
+from io import BytesIO
 import os.path as osp
 from threading import Thread
 from time import sleep
@@ -32,6 +33,7 @@ COUNTDOWN = 2
 PREVIEW_REFRESH = 1.
 NPHOTOS = 3
 PRINTER = 'ZJ-58'
+RESOLUTION = (1600, 960)
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
 
@@ -43,6 +45,8 @@ class SelfieScreen(Screen):
     selfie_in_progress = BooleanProperty(False)
     countdown = NumericProperty(0)
     counter = NumericProperty(0)
+
+    RESOLUTION = RESOLUTION
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -61,14 +65,19 @@ class SelfieScreen(Screen):
             self.text.text = str(self.countdown)
 
     def take_picture(self):
+        self.text.text = "Smile"
         if self.clock_event is not None:
             self.clock_event.cancel()
 
-        self.text.text = "Smile"
-        filename = osp.join(TMP_FOLDER, "snap{}.png".format(self.counter))
-        # self.camera.capture_image(filename)
-        tw, th = self.camera.texture_size
-        self.snaps[self.counter] = copy(self.camera.texture.get_region(0, 0, tw, th))
+        self.camera.play = False
+        # Big thanks to https://gist.github.com/rooterkyberian/32d751bfaf7bc32433b3#file-dtryhard_kivy-py
+        ct = self.camera.texture
+        t = Texture.create(size=self.camera.texture_size, colorfmt=ct.colorfmt, bufferfmt=ct.bufferfmt)
+        t.blit_buffer(ct.pixels, colorfmt=ct.colorfmt, bufferfmt=ct.bufferfmt)
+        t.flip_vertical()
+        self.snaps[self.counter] = t
+
+        self.camera.play = True
         self.counter += 1
 
         if self.counter == NPHOTOS:
