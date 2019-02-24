@@ -167,7 +167,7 @@ class PrintScreen(Screen):
 
         # Save the final composition
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.png".format(stamp))
+        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
         fbo.bind()
         fbo.texture.save(self.montage_file, flipped=True)
         fbo.release()
