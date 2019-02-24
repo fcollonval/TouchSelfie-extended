@@ -31,6 +31,7 @@ RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
+cups.setUser(getpass.getuser())
 
 
 class SelfieScreen(Screen):
@@ -110,8 +111,24 @@ class SelfieScreen(Screen):
 class PrintScreen(Screen):
     snaps = ListProperty(None)
     montage_file = StringProperty("")
+        
+    def __init__(self, *args, **kwargs):
+        super(PrintScreen, self).__init__(*args, **kwargs)
+        stamp = datetime.now().strftime("%Y%m%d")
+        db_name = "database_" + stamp
+        if osp.exists(db_name + ".csv"):
+            i = 0
+            while osp.exists(db_name + "{}.csv".format(i)):
+                i += 1
+            db_name += "{}".format(i)
+        self.db = db_name + ".csv"
+        with open(self.db, "w") as f:
+            f.write("file,email\n")
 
     def on_pre_enter(self, *args):
+        if self.ids.input_email is not None:
+            self.ids.input_email.text = ""
+        
         w = self.width/NPHOTOS
         h = self.height - 60.
         thumbnail_size = (int(w), int(w / RESOLUTION[0] * RESOLUTION[1]))
@@ -150,24 +167,28 @@ class PrintScreen(Screen):
 
         # Save the final composition
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
+        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.png".format(stamp))
         fbo.bind()
         fbo.texture.save(self.montage_file, flipped=True)
         fbo.release()
 
     def send_email(self, email):
-        # TODO
-        print("Store email and print " + email)
-        try:
-            conn = cups.Connection()
-            printers = conn.getPrinters()
-            if PRINTER not in printers:
-                raise ValueError("Printer {} not found.".format(PRINTER))
-            cups.setUser(getpass.getuser())
-            # Printer, filename, title, options
-            conn.printFile(PRINTER, "dummy.png", 'dummy', {'fit-to-page': 'True'})
-        except Exception as err:
-            print("Print failed: {}".format(repr(err)))
+        if len(self.montage_file):
+            try:
+                conn = cups.Connection()
+                printers = conn.getPrinters()
+                if PRINTER not in printers:
+                    raise ValueError("Printer {} not found.".format(PRINTER))
+                # Printer, filename, title, options
+                conn.printFile(PRINTER, str(self.montage_file), "photo_montage", {'fit-to-page': 'True'})
+            except Exception as err:
+                print("Print failed: {}".format(repr(err)))
+            
+            if len(email):
+                with open(self.db, "a") as f:
+                    f.write("{},{}\n".format(self.montage_file, email))
+
+            self.montage_file = ""
         self.reset()
 
     def reset(self):
