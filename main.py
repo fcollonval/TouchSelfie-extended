@@ -1,7 +1,7 @@
 from datetime import datetime
 import os.path as osp
-
-import cups
+import os
+# import cups
 import getpass
 
 from kivy.app import App
@@ -17,12 +17,16 @@ from kivy.properties import ObjectProperty, BooleanProperty, \
 from kivy.clock import Clock
 from kivy.garden import iconfonts
 
+from escpos import printer
+
 from PIL import Image
 
-
+IDVENDOR=0x0fe6
+IDPRODUCT=0x811e
+OUTPUT_ENDPOINT=0x02
 BACKGROUND = "photobooth_bg.png"
 COUNTDOWN = 2
-NPHOTOS = 3
+NPHOTOS = 1 
 # 5 * 15.2cm @200DPI
 PAPER_SIZE = (402, 1197)
 PRINTER = 'ZJ-58'
@@ -31,7 +35,7 @@ RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 
 iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
-cups.setUser(getpass.getuser())
+# cups.setUser(getpass.getuser())
 
 
 class SelfieScreen(Screen):
@@ -118,12 +122,14 @@ class PrintScreen(Screen):
         db_name = "database_" + stamp
         if osp.exists(db_name + ".csv"):
             i = 0
-            while osp.exists(db_name + "{}.csv".format(i)):
+            while osp.exists(db_name + "_{}.csv".format(i)):
                 i += 1
-            db_name += "{}".format(i)
+            db_name += "_{}".format(i)
         self.db = db_name + ".csv"
         with open(self.db, "w") as f:
             f.write("file,email\n")
+
+        self.printer = printer.Usb(IDVENDOR, IDPRODUCT, out_ep=OUTPUT_ENDPOINT)
 
     def on_pre_enter(self, *args):
         if self.ids.input_email is not None:
@@ -148,7 +154,7 @@ class PrintScreen(Screen):
         fbo = Fbo(size=PAPER_SIZE)
         
         w, h = fbo.size
-        length = int(0.8 * w)  # Picture will be square of 80% of paper width
+        length = int(0.9 * w)  # Picture will be square of 90% of paper width
         length = min(length, int(h * 0.85/ NPHOTOS))
 
         with fbo:
@@ -175,12 +181,10 @@ class PrintScreen(Screen):
     def send_email(self, email):
         if len(self.montage_file):
             try:
-                conn = cups.Connection()
-                printers = conn.getPrinters()
-                if PRINTER not in printers:
-                    raise ValueError("Printer {} not found.".format(PRINTER))
-                # Printer, filename, title, options
-                conn.printFile(PRINTER, str(self.montage_file), "photo_montage", {'fit-to-page': 'True'})
+#                self.printer.image(str(self.montage_file))
+#                # Feed some paper to have a nice cut
+#                self.printer._raw(b"\n\n\n")
+                pass
             except Exception as err:
                 print("Print failed: {}".format(repr(err)))
             
