@@ -36,7 +36,7 @@ PRINTER = 'ZJ-58'
 RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 
-iconfonts.register('default_font', 'fontawesome-webfont.ttf', 'font-awesome.fontd')
+iconfonts.register('default_font', 'data/fontawesome-webfont.ttf', 'data/font-awesome.fontd')
 # cups.setUser(getpass.getuser())
 
 
@@ -70,6 +70,11 @@ class SelfieScreen(Screen):
         self.text.text = "Smile"
         if self.clock_event is not None:
             self.clock_event.cancel()
+        # Get the reset of the action to be done after the next frame is 
+        # rendered so that the text label get updated.
+        Clock.schedule_once(self._take_snapshot, 0)
+
+    def _take_snapshot(self, dt):
 
         self.camera.play = False
         # Big thanks to https://gist.github.com/rooterkyberian/32d751bfaf7bc32433b3#file-dtryhard_kivy-py
