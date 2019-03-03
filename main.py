@@ -135,8 +135,8 @@ class PrintScreen(Screen):
         if self.ids.input_email is not None:
             self.ids.input_email.text = ""
         
-        w = self.width/NPHOTOS
         h = self.height - 60.
+        w = min(self.width/NPHOTOS, h)
         thumbnail_size = (int(w), int(w / RESOLUTION[0] * RESOLUTION[1]))
 
         previews = self.ids.preview
@@ -207,6 +207,7 @@ class SelfieApp(App):
     
     def build(self):
         Config.set("kivy", "keyboard_mode", "systemanddock")
+        Config.set("kivy", "keyboard_layout", "email_kb.json")
         return ScreenOrchestrator(transition=FadeTransition())
 
 
