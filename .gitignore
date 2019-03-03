@@ -31,8 +31,8 @@ scripts/ressources/effects/effects_snaps/
 # ignore sendmail log
 sendmail.log
 
-kivy/pictures/
-kivy/snapshots/
+pictures/
+database_*csv
 __pycache__
 
 .vscode/

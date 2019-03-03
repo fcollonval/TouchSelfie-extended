@@ -5,21 +5,23 @@ import os
 import getpass
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.config import Config
 from kivy.core.image import Image as CoreImage
-
 from kivy.graphics.texture import Texture
 from kivy.graphics import Fbo, Rectangle
-
-from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
+from kivy.lang import Builder
 from kivy.properties import ObjectProperty, BooleanProperty, \
     NumericProperty, StringProperty, ListProperty
-from kivy.clock import Clock
+from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
+
 from kivy.garden import iconfonts
 
 from escpos import printer
 
-from PIL import Image
+
+Builder.load_file("style.kv")
+
 
 IDVENDOR=0x0fe6
 IDPRODUCT=0x811e
@@ -207,7 +209,7 @@ class SelfieApp(App):
     
     def build(self):
         Config.set("kivy", "keyboard_mode", "systemanddock")
-        Config.set("kivy", "keyboard_layout", "email_kb.json")
+        Config.set("kivy", "keyboard_layout", "data/email_kb.json")
         return ScreenOrchestrator(transition=FadeTransition())
 
 
