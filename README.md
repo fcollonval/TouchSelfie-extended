@@ -38,4 +38,6 @@ Remarks:
 between pictures.  
 The TTL serial connection is done easily by connecting the RX port of the printer (the middle pin) to the
 GPIO 14 on the raspberry pi and the Ground pin to one of the raspberry (see [here](https://learn.adafruit.com/mini-thermal-receipt-printer/circuitpython)).
+* The `ZJ-58.ppd` file was modified to switch the default size to `X48MMY210MM` and the default feed distance
+was set to `2feed9mm`
 
