@@ -30,3 +30,9 @@ scripts/ressources/effects/effects_snaps/
 
 # ignore sendmail log
 sendmail.log
+
+pictures/
+database_*csv
+__pycache__
+
+.vscode/

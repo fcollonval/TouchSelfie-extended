@@ -1,0 +1,66 @@
+#:kivy 1.10
+#: import icon kivy.garden.iconfonts.icon
+
+<ScreenOrchestrator>:
+    size: (800, 480)
+    SelfieScreen:
+        id: selfie
+    PrintScreen:
+        id: print
+        snaps: selfie.snaps
+
+<SelfieScreen>:
+    name: "selfie"
+    text: main_label
+    camera: image_preview
+
+    Camera:
+        id: image_preview
+        resolution: self.parent.RESOLUTION
+        play: True 
+        size: self.parent.width, self.parent.height
+
+    Label:
+        id: main_label
+        font_size: 70
+        text: "Press to start"
+
+
+<PrintScreen>:
+    name: "print"
+
+    BoxLayout:
+        orientation: "vertical"
+        size_hint: (1., 1.)
+        id: layout
+
+        BoxLayout:
+            height: 60
+            size_hint_y: None
+        
+            Button:
+                markup: True # Always turn markup on
+                text: "%s"%(icon('fa-undo'))
+                on_release: layout.parent.reset()            
+                font_size: 40
+                size_hint: (0.1, 1.)
+
+            TextInput:
+                id: input_email
+                input_type: "mail"
+                multiline: False
+                hint_text: "martin.dupont@gmail.com"
+                font_size: 40
+                size_hint: (0.8, 1.)
+            
+            Button:
+                markup: True # Always turn markup on
+                text: "%s"%(icon('fa-paper-plane-o'))
+                font_size: 40
+                size_hint: (0.1, 1.)
+                on_release: layout.parent.send_email(input_email.text)
+
+        BoxLayout:
+            id: preview
+            size_hint: (1., 0.875)
+
