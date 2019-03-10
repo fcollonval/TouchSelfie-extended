@@ -1,8 +1,6 @@
 from datetime import datetime
-import os.path as osp
 import os
-# import cups
-import getpass
+import os.path as osp
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -17,27 +15,21 @@ from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 
 from kivy.garden import iconfonts
 
-from escpos import printer
-
 
 Builder.load_file("style.kv")
 
 
-IDVENDOR=0x0fe6
-IDPRODUCT=0x811e
-OUTPUT_ENDPOINT=0x02
 BACKGROUND = "photobooth_bg.png"
 COUNTDOWN = 2
-NPHOTOS = 1 
+NPHOTOS = 3 
 # 5 * 15.2cm @200DPI
 PAPER_SIZE = (402, 1197)
-PRINTER = 'ZJ-58'
+PRINTER = 'ZJ-58_2'
 # Pi Camera v2 Hardware 3280 × 2464 pixels
 RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 
 iconfonts.register('default_font', 'data/fontawesome-webfont.ttf', 'data/font-awesome.fontd')
-# cups.setUser(getpass.getuser())
 
 
 class SelfieScreen(Screen):
@@ -55,7 +47,6 @@ class SelfieScreen(Screen):
         self.snaps = [
             Texture.create(size=RESOLUTION) for i in range(NPHOTOS)
         ]
-        # self.camera = camera
         self.clock_event = None
 
     def decrement(self, dt):
@@ -75,7 +66,6 @@ class SelfieScreen(Screen):
         Clock.schedule_once(self._take_snapshot, 0)
 
     def _take_snapshot(self, dt):
-
         self.camera.play = False
         # Big thanks to https://gist.github.com/rooterkyberian/32d751bfaf7bc32433b3#file-dtryhard_kivy-py
         ct = self.camera.texture
@@ -136,8 +126,6 @@ class PrintScreen(Screen):
         with open(self.db, "w") as f:
             f.write("file,email\n")
 
-        self.printer = printer.Usb(IDVENDOR, IDPRODUCT, out_ep=OUTPUT_ENDPOINT)
-
     def on_pre_enter(self, *args):
         if self.ids.input_email is not None:
             self.ids.input_email.text = ""
@@ -171,7 +159,7 @@ class PrintScreen(Screen):
                     size=(length, length),
                     pos=(
                         int(0.5 * (w - length)), 
-                        int(h - (i + 1) * (0.45 * (w - length) + length))
+                        int(h - (i + 1) * (0.25 * (w - length) + length))
                     ),
                     texture=self.snaps[i]
                 )
@@ -188,10 +176,8 @@ class PrintScreen(Screen):
     def send_email(self, email):
         if len(self.montage_file):
             try:
-#                self.printer.image(str(self.montage_file))
-#                # Feed some paper to have a nice cut
-#                self.printer._raw(b"\n\n\n")
-                pass
+                # Send the file to the printer
+                os.system("lp {}".format(self.montage_file))
             except Exception as err:
                 print("Print failed: {}".format(repr(err)))
             
@@ -219,4 +205,6 @@ class SelfieApp(App):
 
 
 if __name__ == "__main__":
-    SelfieApp().run()
+    app = SelfieApp()
+    app.run()
+
