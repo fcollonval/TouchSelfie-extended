@@ -5,6 +5,11 @@ and save the pictures with optionally an email address (to send them after the e
 
 The email addresses and pictures are simply appended to a CSV file.
 
+## Execution
+
+```
+python3 main.py
+```
 
 ## Hardware requirements
 
@@ -25,6 +30,35 @@ The hardware used:
 * zj-58 driver - https://github.com/adafruit/zj-58 
 * Kivy >=1.10 - https://kivy.org
 * rpi_backlight - https://github.com/linusg/rpi-backlight
+
+## Software requirements
+
+* Python packages
+
+```bash
+sudo apt-get update
+sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+   pkg-config libgl1-mesa-dev libgles2-mesa-dev \
+   python3-setuptools libgstreamer1.0-dev git-core \
+   gstreamer1.0-plugins-{bad,base,good,ugly} \
+   gstreamer1.0-{omx,alsa} python3-dev libmtdev-dev \
+   xclip xsel python3-picamera python3-pip
+sudo pip3 install -U Cython==0.28.2
+sudo pip3 install git+https://github.com/kivy/kivy.git@1.10.1
+garden install iconfonts
+```
+
+* Printer driver
+
+```bash    
+sudo apt-get update
+sudo apt-get install git cups wiringpi build-essential libcups2-dev libcupsimage2-dev
+cd
+git clone https://github.com/adafruit/zj-58
+cd zj-58
+make
+sudo ./install
+```
 
 ## Thermal printer configuration
 
