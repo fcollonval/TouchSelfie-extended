@@ -1,6 +1,8 @@
 from datetime import datetime
 import os
 import os.path as osp
+import re
+from subprocess import PIPE, Popen
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -15,12 +17,13 @@ from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 
 from kivy.garden import iconfonts
 
+import rpi_backlight as bl
 
 Builder.load_file("style.kv")
 
 
 BACKGROUND = "photobooth_bg.png"
-COUNTDOWN = 2
+COUNTDOWN = 5 
 NPHOTOS = 3 
 # 5 * 15.2cm @200DPI
 PAPER_SIZE = (402, 1197)
@@ -28,8 +31,16 @@ PRINTER = 'ZJ-58_2'
 # Pi Camera v2 Hardware 3280 × 2464 pixels
 RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
+# Backlight timeout for extinction in seconds
+BACKLIGHT_TIMEOUT = 600
 
 iconfonts.register('default_font', 'data/fontawesome-webfont.ttf', 'data/font-awesome.fontd')
+
+
+def is_printer_printing():
+    p = Popen(["lpstat", "-p"], stdout=PIPE, stderr=PIPE)
+    out, err = p.communicate()
+    return re.search(r"ZJ-58.*printing", out.decode('utf-8')) is not None
 
 
 class SelfieScreen(Screen):
@@ -48,19 +59,34 @@ class SelfieScreen(Screen):
             Texture.create(size=RESOLUTION) for i in range(NPHOTOS)
         ]
         self.clock_event = None
+        self.backlight_event = None
 
     def decrement(self, dt):
         self.countdown -= 1
         if self.countdown == 0:
+            if self.clock_event is not None:
+                self.clock_event.cancel()
             self.take_picture()
         else:
             self.text.font_size = 100
             self.text.text = str(self.countdown)
 
+    def wait_for_printer(self, dt):
+        # Get the printer status
+        if is_printer_printing():
+            self.text.text = "Print in progress"
+            self.selfie_in_progress = True
+            self.clock_event = Clock.schedule_once(self.wait_for_printer, 1)
+        else:
+            self.text.text = "Press to start"
+            self.selfie_in_progress = False
+
+    def power_off_backlight(self, dt):
+        if bl.get_power():
+            bl.set_power(False)
+
     def take_picture(self):
         self.text.text = "Smile"
-        if self.clock_event is not None:
-            self.clock_event.cancel()
         # Get the reset of the action to be done after the next frame is 
         # rendered so that the text label get updated.
         Clock.schedule_once(self._take_snapshot, 0)
@@ -90,15 +116,28 @@ class SelfieScreen(Screen):
 
     def on_pre_enter(self, *args):
         if self.camera is not None:
-            self.text.text = "Press to start"
-            self.selfie_in_progress = False
+            self.text.text = "Checking printer status"
+            self.selfie_in_progress = True
+            self.clock_event = Clock.schedule_once(self.wait_for_printer, 0.1)
             self.camera.play = True
+        self.backlight_timeout = Clock.schedule_once(self.power_off_backlight, BACKLIGHT_TIMEOUT)
 
     def on_pre_leave(self, *args):
         if self.camera is not None:
             self.camera.play = False
+        if self.backlight_timeout is not None:
+            self.backlight_timeout.cancel()
 
     def on_touch_down(self, touch):
+        if self.backlight_timeout is not None:
+            # Reset backlight timeout
+            self.backlight_timeout.cancel()
+            self.backlight_timeout = Clock.schedule_once(self.power_off_backlight, BACKLIGHT_TIMEOUT)
+
+        if not bl.get_power():  # If the backlight was off just turn it off on touch
+            bl.set_power(True)
+            return
+
         if self.selfie_in_progress:
             return
         

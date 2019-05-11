@@ -20,6 +20,11 @@ The hardware used:
   * 5V/2A power supply recommanded by Adafruit
   * 2.1mm jack adapter to connect the power to the printer
 
+## Software requirements
+
+* zj-58 driver - https://github.com/adafruit/zj-58 
+* Kivy >=1.10 - https://kivy.org
+* rpi_backlight - https://github.com/linusg/rpi-backlight
 
 ## Thermal printer configuration
 
