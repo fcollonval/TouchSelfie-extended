@@ -27,13 +27,10 @@ The hardware used:
 
 ## Software requirements
 
-* zj-58 driver - https://github.com/adafruit/zj-58 
+* Python packages
+
 * Kivy >=1.10 - https://kivy.org
 * rpi_backlight - https://github.com/linusg/rpi-backlight
-
-## Software requirements
-
-* Python packages
 
 ```bash
 sudo apt-get update
@@ -44,6 +41,7 @@ sudo apt-get install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf
    gstreamer1.0-{omx,alsa} python3-dev libmtdev-dev \
    xclip xsel python3-picamera python3-pip
 sudo pip3 install -U Cython==0.28.2
+sudo pip3 install rpi_backlight
 sudo pip3 install git+https://github.com/kivy/kivy.git@1.10.1
 garden install iconfonts
 ```
