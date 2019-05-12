@@ -32,9 +32,14 @@ PRINTER = 'ZJ-58_2'
 RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 # Backlight timeout for extinction in seconds
-BACKLIGHT_TIMEOUT = 600
+BACKLIGHT_TIMEOUT = 10
 
-iconfonts.register('default_font', 'data/fontawesome-webfont.ttf', 'data/font-awesome.fontd')
+curdir = osp.dirname(osp.realpath(__file__))
+iconfonts.register(
+    'default_font', 
+    osp.join(curdir, 'data', 'fontawesome-webfont.ttf'), 
+    osp.join(curdir, 'data', 'font-awesome.fontd')
+)
 
 
 def is_printer_printing():
@@ -81,9 +86,17 @@ class SelfieScreen(Screen):
             self.text.text = "Press to start"
             self.selfie_in_progress = False
 
-    def power_off_backlight(self, dt):
+    def sleep(self, dt):
         if bl.get_power():
             bl.set_power(False)
+            if self.camera is not None:
+                self.camera.play = False
+
+    def wake_up(self):
+        if not bl.get_power():
+            bl.set_power(True)
+            if self.camera is not None:
+                self.camera.play = True
 
     def take_picture(self):
         self.text.text = "Smile"
@@ -116,11 +129,11 @@ class SelfieScreen(Screen):
 
     def on_pre_enter(self, *args):
         if self.camera is not None:
-            self.text.text = "Checking printer status"
+            self.text.text = "Query printer..."
             self.selfie_in_progress = True
             self.clock_event = Clock.schedule_once(self.wait_for_printer, 0.1)
             self.camera.play = True
-        self.backlight_timeout = Clock.schedule_once(self.power_off_backlight, BACKLIGHT_TIMEOUT)
+        self.backlight_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
 
     def on_pre_leave(self, *args):
         if self.camera is not None:
@@ -132,10 +145,10 @@ class SelfieScreen(Screen):
         if self.backlight_timeout is not None:
             # Reset backlight timeout
             self.backlight_timeout.cancel()
-            self.backlight_timeout = Clock.schedule_once(self.power_off_backlight, BACKLIGHT_TIMEOUT)
+            self.backlight_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
 
         if not bl.get_power():  # If the backlight was off just turn it off on touch
-            bl.set_power(True)
+            self.wake_up()
             return
 
         if self.selfie_in_progress:
