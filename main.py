@@ -32,7 +32,7 @@ PRINTER = 'ZJ-58_2'
 RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 # Backlight timeout for extinction in seconds
-BACKLIGHT_TIMEOUT = 10
+BACKLIGHT_TIMEOUT = 300
 
 curdir = osp.dirname(osp.realpath(__file__))
 iconfonts.register(
@@ -79,11 +79,11 @@ class SelfieScreen(Screen):
     def wait_for_printer(self, dt):
         # Get the printer status
         if is_printer_printing():
-            self.text.text = "Print in progress"
+            self.text.text = "Impression..."
             self.selfie_in_progress = True
             self.clock_event = Clock.schedule_once(self.wait_for_printer, 1)
         else:
-            self.text.text = "Press to start"
+            self.text.text = "Appuyez"
             self.selfie_in_progress = False
 
     def sleep(self, dt):
@@ -99,7 +99,7 @@ class SelfieScreen(Screen):
                 self.camera.play = True
 
     def take_picture(self):
-        self.text.text = "Smile"
+        self.text.text = "Souriez"
         # Get the reset of the action to be done after the next frame is 
         # rendered so that the text label get updated.
         Clock.schedule_once(self._take_snapshot, 0)
@@ -120,7 +120,7 @@ class SelfieScreen(Screen):
             self.process_picture()
         else:
             self.countdown = COUNTDOWN
-            self.text.text = "Get ready!"
+            self.text.text = "Encore {}!".format(NPHOTOS - self.counter)
             self.clock_event = Clock.schedule_interval(self.decrement, 1)
     
     def process_picture(self):
@@ -129,23 +129,24 @@ class SelfieScreen(Screen):
 
     def on_pre_enter(self, *args):
         if self.camera is not None:
-            self.text.text = "Query printer..."
+            self.text.text = "En préparation..."
             self.selfie_in_progress = True
             self.clock_event = Clock.schedule_once(self.wait_for_printer, 0.1)
             self.camera.play = True
-        self.backlight_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
+        self.sleep_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
 
     def on_pre_leave(self, *args):
         if self.camera is not None:
             self.camera.play = False
-        if self.backlight_timeout is not None:
-            self.backlight_timeout.cancel()
+        if self.sleep_timeout is not None:
+            self.sleep_timeout.cancel()
 
     def on_touch_down(self, touch):
-        if self.backlight_timeout is not None:
+        if self.sleep_timeout is not None:
             # Reset backlight timeout
-            self.backlight_timeout.cancel()
-            self.backlight_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
+            self.sleep_timeout.cancel()
+            if not self.selfie_in_progress:
+                self.sleep_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
 
         if not bl.get_power():  # If the backlight was off just turn it off on touch
             self.wake_up()
@@ -155,7 +156,9 @@ class SelfieScreen(Screen):
             return
         
         self.selfie_in_progress = True
-        self.text.text = "Get ready!"
+        if self.sleep_timeout is not None:
+            self.sleep_timeout.cancel()
+        self.text.text = "C'est parti!"
         self.countdown = COUNTDOWN
         self.counter = 0
         self.clock_event = Clock.schedule_interval(self.decrement, 1)
@@ -174,7 +177,7 @@ class PrintScreen(Screen):
             while osp.exists(db_name + "_{}.csv".format(i)):
                 i += 1
             db_name += "_{}".format(i)
-        self.db = db_name + ".csv"
+        self.db = osp.join(curdir, db_name + ".csv")
         with open(self.db, "w") as f:
             f.write("file,email\n")
 
@@ -220,16 +223,23 @@ class PrintScreen(Screen):
 
         # Save the final composition
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.montage_file = osp.join(STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
+        self.montage_file = osp.join(curdir, STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
         fbo.bind()
         fbo.texture.save(self.montage_file, flipped=True)
         fbo.release()
 
     def send_email(self, email):
         if len(self.montage_file):
+            # special terms
+            if email in ('exit', 'halt'):
+                App.get_running_app().stop()
+                if email == 'halt':
+                    os.system("sudo halt")
+                return
+
             try:
                 # Send the file to the printer
-                os.system("lp {}".format(self.montage_file))
+                os.system("lp {}".format(osp.join(curdir, self.montage_file)))
             except Exception as err:
                 print("Print failed: {}".format(repr(err)))
             
