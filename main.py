@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import os
 import os.path as osp
 import re
@@ -63,8 +64,14 @@ class SelfieScreen(Screen):
         self.snaps = [
             Texture.create(size=RESOLUTION) for i in range(NPHOTOS)
         ]
-        self.clock_event = None
+        self.clock_event = Clock.schedule_once(self._flip_image) 
         self.backlight_event = None
+
+    def _flip_image(self, dt):
+        # Flip the camera horizontally so moving left, move you left
+        #  Trick done in PiCamera obj as we known which camera we got
+        self.camera._camera._camera.hflip = True
+
 
     def decrement(self, dt):
         self.countdown -= 1
@@ -106,13 +113,17 @@ class SelfieScreen(Screen):
 
     def _take_snapshot(self, dt):
         self.camera.play = False
+        # Take advantage that we know, it is a PiCamera
+        # Deactivate the hflip
         # Big thanks to https://gist.github.com/rooterkyberian/32d751bfaf7bc32433b3#file-dtryhard_kivy-py
         ct = self.camera.texture
         t = Texture.create(size=self.camera.texture_size, colorfmt=ct.colorfmt, bufferfmt=ct.bufferfmt)
         t.blit_buffer(ct.pixels, colorfmt=ct.colorfmt, bufferfmt=ct.bufferfmt)
         t.flip_vertical()
+        t.flip_horizontal()  # Reverse mirror effect on selfie screen
         self.snaps[self.counter] = t
-
+        
+        self.camera._camera._camera.hflip = True
         self.camera.play = True
         self.counter += 1
 
