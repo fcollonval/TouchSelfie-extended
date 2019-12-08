@@ -30,6 +30,7 @@ scripts/ressources/effects/effects_snaps/
 
 # ignore sendmail log
 sendmail.log
+google_client_id.json
 
 pictures/
 database_*csv
