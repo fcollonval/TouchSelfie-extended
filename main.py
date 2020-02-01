@@ -97,14 +97,14 @@ class SelfieScreen(Screen):
     def sleep(self, dt):
         if bl.get_power():
             bl.set_power(False)
-            if self.camera is not None:
-                self.camera.play = False
+ #           if self.camera is not None:
+ #               self.camera.play = False
 
     def wake_up(self):
         if not bl.get_power():
             bl.set_power(True)
-            if self.camera is not None:
-                self.camera.play = True
+ #           if self.camera is not None:
+ #               self.camera.play = True
 
     def take_picture(self):
         self.text.text = "Souriez"
@@ -190,6 +190,8 @@ class PrintScreen(Screen):
         with open(self.db, "w") as f:
             f.write("file,email\n")
 
+        self.background = CoreImage(BACKGROUND).texture
+
     def on_pre_enter(self, *args):
         if self.ids.input_email is not None:
             self.ids.input_email.text = ""
@@ -209,7 +211,6 @@ class PrintScreen(Screen):
                 )
 
         # Generate the composed image
-        background = CoreImage(BACKGROUND).texture
         fbo = Fbo(size=PAPER_SIZE)
         
         w, h = fbo.size
@@ -217,7 +218,7 @@ class PrintScreen(Screen):
         length = min(length, int(h * 0.85/ NPHOTOS))
 
         with fbo:
-            Rectangle(size=fbo.size, pos=(0, 0), texture=background)
+            Rectangle(size=fbo.size, pos=(0, 0), texture=self.background)
             for i in range(NPHOTOS):
                 Rectangle(
                     size=(length, length),
