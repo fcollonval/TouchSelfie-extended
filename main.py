@@ -18,7 +18,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 
 from kivy.garden import iconfonts
 
-import rpi_backlight as bl
+import rpi_backlight as bl  # >=2.0.0
 
 Builder.load_file("style.kv")
 
@@ -95,16 +95,16 @@ class SelfieScreen(Screen):
             self.selfie_in_progress = False
 
     def sleep(self, dt):
-        if bl.get_power():
-            bl.set_power(False)
- #           if self.camera is not None:
- #               self.camera.play = False
+        if bl.power:
+            bl.power = False
+            if self.camera is not None:
+                self.camera.play = False
 
     def wake_up(self):
-        if not bl.get_power():
-            bl.set_power(True)
- #           if self.camera is not None:
- #               self.camera.play = True
+        if not bl.power:
+            bl.power = True
+            if self.camera is not None:
+                self.camera.play = True
 
     def take_picture(self):
         self.text.text = "Souriez"
@@ -157,7 +157,7 @@ class SelfieScreen(Screen):
             if not self.selfie_in_progress:
                 self.sleep_timeout = Clock.schedule_once(self.sleep, BACKLIGHT_TIMEOUT)
 
-        if not bl.get_power():  # If the backlight was off just turn it off on touch
+        if not bl.power:  # If the backlight was off just turn it off on touch
             self.wake_up()
             return
 
