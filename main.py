@@ -18,7 +18,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 
 from kivy.garden import iconfonts
 
-import rpi_backlight as bl  # >=2.0.0
+from rpi_backlight import Backlight  # >=2.0.0
 
 Builder.load_file("style.kv")
 
@@ -34,6 +34,8 @@ RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 # Backlight timeout for extinction in seconds
 BACKLIGHT_TIMEOUT = 300
+
+bl = Backlight()
 
 curdir = osp.dirname(osp.realpath(__file__))
 iconfonts.register(
@@ -56,6 +58,7 @@ class SelfieScreen(Screen):
     selfie_in_progress = BooleanProperty(False)
     snaps = ListProperty(None)
     text = ObjectProperty(None)
+    montage_file = StringProperty("")
 
     RESOLUTION = RESOLUTION
     
@@ -67,6 +70,8 @@ class SelfieScreen(Screen):
         # Initialize the camera at the first frame refresh to ensure it is active
         self.clock_event = Clock.schedule_once(self._init_camera) 
         self.backlight_event = None
+
+        self.background = CoreImage(BACKGROUND).texture
 
     def _init_camera(self, dt):
         # Flip the camera horizontally so moving left, move you left
@@ -133,8 +138,48 @@ class SelfieScreen(Screen):
             self.clock_event = Clock.schedule_interval(self.decrement, 1)
     
     def process_picture(self):
-        # Switch screen
-        self.parent.current = "print"
+        # Generate the composed image
+        def save_montage(background):
+            fbo = Fbo(size=PAPER_SIZE)
+            
+            w, h = fbo.size
+            length = int(0.9 * w)  # Picture will be square of 90% of paper width
+            length = min(length, int(h * 0.85/ NPHOTOS))
+
+            with fbo:
+                Rectangle(size=fbo.size, pos=(0, 0), texture=background)
+                for i in range(NPHOTOS):
+                    Rectangle(
+                        size=(length, length),
+                        pos=(
+                            int(0.5 * (w - length)), 
+                            int(h - (i + 1) * (0.25 * (w - length) + length))
+                        ),
+                        texture=self.snaps[i]
+                    )
+            # Carry the actual draw
+            fbo.draw()
+
+            # Save the final composition
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            montage_file = osp.join(curdir, STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
+            fbo.bind()
+            fbo.texture.save(montage_file, flipped=True)
+            fbo.release()
+            del fbo
+
+            return montage_file
+
+        try:
+            self.montage_file = save_montage(self.background)
+        except Exception as e:
+            logging.error(e)
+            self.text.text = "Erreur..."
+            self.clock_event = Clock.schedule_once(self.wait_for_printer)
+            self.camera.play = True
+        else:
+            # Switch screen
+            self.parent.current = "print"
 
     def on_pre_enter(self, *args):
         if self.camera is not None:
@@ -190,8 +235,6 @@ class PrintScreen(Screen):
         with open(self.db, "w") as f:
             f.write("file,email\n")
 
-        self.background = CoreImage(BACKGROUND).texture
-
     def on_pre_enter(self, *args):
         if self.ids.input_email is not None:
             self.ids.input_email.text = ""
@@ -209,34 +252,6 @@ class PrintScreen(Screen):
                     pos=(int(i*thumbnail_size[0]), int(0.5*(h - thumbnail_size[1]))),
                     texture=self.snaps[i]
                 )
-
-        # Generate the composed image
-        fbo = Fbo(size=PAPER_SIZE)
-        
-        w, h = fbo.size
-        length = int(0.9 * w)  # Picture will be square of 90% of paper width
-        length = min(length, int(h * 0.85/ NPHOTOS))
-
-        with fbo:
-            Rectangle(size=fbo.size, pos=(0, 0), texture=self.background)
-            for i in range(NPHOTOS):
-                Rectangle(
-                    size=(length, length),
-                    pos=(
-                        int(0.5 * (w - length)), 
-                        int(h - (i + 1) * (0.25 * (w - length) + length))
-                    ),
-                    texture=self.snaps[i]
-                )
-        # Carry the actual draw
-        fbo.draw()
-
-        # Save the final composition
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.montage_file = osp.join(curdir, STORAGE_FOLDER, "picture_{}.jpg".format(stamp))
-        fbo.bind()
-        fbo.texture.save(self.montage_file, flipped=True)
-        fbo.release()
 
     def send_email(self, email):
         if len(self.montage_file):
