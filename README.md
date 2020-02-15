@@ -11,6 +11,15 @@ The email addresses and pictures are simply appended to a CSV file.
 python3 main.py
 ```
 
+To stop the application, enter *exit* as email address and press the print
+button. You could also enter *halt* to stop the application and shutdown the
+raspberry pi.
+
+I experienced unstabilities due to graphic card errors (mostly due to lake of GPU memory).
+So to be more robust to Kivy crashes, you can use the `runner.py` script. It will restart the application
+if it crashes except if the magic word *exit* or *halt* were given as email
+addresses.
+
 ## Hardware requirements
 
 The hardware used:
@@ -25,12 +34,18 @@ The hardware used:
   * 5V/2A power supply recommanded by Adafruit
   * 2.1mm jack adapter to connect the power to the printer
 
+
+> It is important to give quite some memory to the GPU for the application
+to be stable. I recommend using 512Mo.
+
+As light source, I bought a *beauty ring* light. They are cheap and good enough in this case. But be sure to have a dedicated power supply for it. I try powering it through USB. But this may the raspberry pi unstable.
+
 ## Software requirements
 
 * Python packages
 
-* Kivy >=1.10 - https://kivy.org
-* rpi_backlight - https://github.com/linusg/rpi-backlight
+* Kivy >= 1.10 - https://kivy.org
+* rpi_backlight >= 2 - https://github.com/linusg/rpi-backlight
 
 ```bash
 sudo apt-get update

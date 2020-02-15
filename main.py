@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from pathlib import Path
 import os
 import os.path as osp
 import re
@@ -34,6 +35,8 @@ RESOLUTION = (960, 960)
 STORAGE_FOLDER = 'pictures'
 # Backlight timeout for extinction in seconds
 BACKLIGHT_TIMEOUT = 300
+# File to indicate nice exit
+EXIT_INDICATOR = Path(__file__).parent / "selfie.exit"
 
 bl = Backlight()
 
@@ -226,14 +229,10 @@ class PrintScreen(Screen):
         super(PrintScreen, self).__init__(*args, **kwargs)
         stamp = datetime.now().strftime("%Y%m%d")
         db_name = "database_" + stamp
-        if osp.exists(db_name + ".csv"):
-            i = 0
-            while osp.exists(db_name + "_{}.csv".format(i)):
-                i += 1
-            db_name += "_{}".format(i)
         self.db = osp.join(curdir, db_name + ".csv")
-        with open(self.db, "w") as f:
-            f.write("file,email\n")
+        if not osp.exists(self.db):
+            with open(self.db, "w") as f:
+                f.write("file,email\n")
 
     def on_pre_enter(self, *args):
         if self.ids.input_email is not None:
@@ -254,14 +253,15 @@ class PrintScreen(Screen):
                 )
 
     def send_email(self, email):
-        if len(self.montage_file):
-            # special terms
-            if email in ('exit', 'halt'):
-                App.get_running_app().stop()
-                if email == 'halt':
-                    os.system("sudo halt")
-                return
+        # special terms
+        if email in ('exit', 'halt'):
+            EXIT_INDICATOR.touch()
+            App.get_running_app().stop()
+            if email == 'halt':
+                os.system("sudo halt")
+            return
 
+        if len(self.montage_file):
             try:
                 # Send the file to the printer
                 os.system("lp {}".format(osp.join(curdir, self.montage_file)))
@@ -290,8 +290,8 @@ class SelfieApp(App):
         Config.set("kivy", "keyboard_layout", "data/email_kb.json")
         return ScreenOrchestrator(transition=FadeTransition())
 
-
 if __name__ == "__main__":
+    if EXIT_INDICATOR.exists():
+        EXIT_INDICATOR.unlink()
     app = SelfieApp()
     app.run()
-
