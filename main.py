@@ -16,6 +16,9 @@ from kivy.lang import Builder
 from kivy.properties import ObjectProperty, BooleanProperty, \
     NumericProperty, StringProperty, ListProperty
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
+from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
+from kivy.uix.textinput import TextInput
 
 from kivy.garden import iconfonts
 
@@ -37,6 +40,8 @@ STORAGE_FOLDER = 'pictures'
 BACKLIGHT_TIMEOUT = 300
 # File to indicate nice exit
 EXIT_INDICATOR = Path(__file__).parent / "selfie.exit"
+# Initial email addresses list
+EMAILS_LIST = Path(__file__).parent / "emails.csv"
 
 bl = Backlight()
 
@@ -52,6 +57,59 @@ def is_printer_printing():
     p = Popen(["lpstat", "-p"], stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
     return re.search(r"ZJ-58.*printing", out.decode('utf-8')) is not None
+
+
+class ComboEdit(TextInput):
+    options = ListProperty((Button(text=''), ))
+
+    def __init__(self, **kwargs):
+        self.email_db = []
+        if EMAILS_LIST.exists():
+            with EMAILS_LIST.open() as femails:
+                self.email_db = set(map(lambda e: e.strip(), femails.readlines()))
+
+        self.drop_down = DropDown()
+        self.drop_down.bind(on_select=self.on_select)
+        super(ComboEdit, self).__init__(**kwargs)
+
+    def _set_suggestions(self):
+        self.options = (Button(text=''), )
+        if len(self.text) >= 1:
+            new_options = []
+            for email in self.email_db:
+                if email.startswith(self.text):
+                    btn = Button(
+                        text=email,
+                        font_size="30sp",
+                        size_hint_y=None,
+                        height=40
+                    )
+                    new_options.append(btn)
+                if len(new_options) == 3:  # Show maximum 3 suggestions
+                    break
+            self.options = new_options
+
+    def add_text_to_db(self):
+        self.email_db.add(str(self.text))
+
+    def keyboard_on_key_up(self, *args):
+        self._set_suggestions()
+        return super(ComboEdit, self).keyboard_on_key_up(*args)
+
+    def on_options(self, instance, value):
+        self.drop_down.clear_widgets()
+        for widget in value:
+            widget.bind(on_release=lambda btn: self.drop_down.select(btn.text))
+            self.drop_down.add_widget(widget)
+
+    def on_select(self, *args):
+        self.text = args[1]
+
+    def on_touch_up(self, touch):
+        if touch.grab_current == self:
+            self.drop_down.open(self)
+            self._set_suggestions()
+        return super(ComboEdit, self).on_touch_up(touch)
 
 
 class SelfieScreen(Screen):
@@ -254,7 +312,7 @@ class PrintScreen(Screen):
 
     def send_email(self, email):
         # special terms
-        if email in ('exit', 'halt'):
+        if email.strip() in ('exit', 'halt'):
             EXIT_INDICATOR.touch()
             App.get_running_app().stop()
             if email == 'halt':
@@ -262,6 +320,8 @@ class PrintScreen(Screen):
             return
 
         if len(self.montage_file):
+            # Add email address to database
+            self.ids.input_email.add_text_to_db()
             try:
                 # Send the file to the printer
                 os.system("lp {}".format(osp.join(curdir, self.montage_file)))
