@@ -38,7 +38,7 @@ The hardware used:
 > It is important to give quite some memory to the GPU for the application
 to be stable. I recommend using 512Mo.
 
-As light source, I bought a *beauty ring* light. They are cheap and good enough in this case. But be sure to have a dedicated power supply for it. I try powering it through USB. But this may the raspberry pi unstable.
+As light source, I bought a *beauty ring* light. They are cheap and good enough in this case. But be sure to have a dedicated power supply for it. I tried powering it through USB. But this rendered the raspberry pi unstable.
 
 ## Software requirements
 
