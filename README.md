@@ -5,6 +5,8 @@ and save the pictures with optionally an email address (to send them after the e
 
 The email addresses and pictures are simply appended to a CSV file.
 
+![Photobooth](photobooth_kivy.jpg)
+
 ## Execution
 
 ```
